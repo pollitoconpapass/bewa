@@ -1,0 +1,45 @@
+name: bewa_music
+description: "A new Flutter project."
+publish_to: "none"
+
+version: 0.0.1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+  provider: ^6.1.5+1
+  dart_web_scraper: ^0.2.12
+  mongo_dart: ^0.10.8
+  flutter_dotenv: ^6.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: "^0.14.4"
+
+flutter:
+  uses-material-design: true
+  generate: true
+  assets:
+    - .env
+    - assets/imgs/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/bewa-icon.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/icons/bewa-icon.png"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
