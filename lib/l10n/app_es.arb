@@ -1,0 +1,8 @@
+{
+    "@@locale": "es",
+
+    "welcomeScreenMainTitle": "Bewa",
+    "welcomeScreenSubTitle": "Reproductor de música gratis",
+    "welcomeScreenButton": "Empezar",
+    "signInButton": "Iniciar Sesión"
+}
