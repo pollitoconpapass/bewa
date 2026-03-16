@@ -1,3 +1,5 @@
+import '../utils/password_encryptation.dart';
+
 class Song {
   final String id;
   final String externalId;
@@ -180,7 +182,7 @@ class User {
       'name': name,
       'image': image,
       'email': email,
-      'password': password,
+      'password': encryptPassword(password),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
