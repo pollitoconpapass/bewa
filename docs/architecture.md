@@ -87,5 +87,6 @@ lib/
 ├── screens/        # Main UI views
 ├── services/       # Core business logic and DB access
 ├── themes/         # Visual styling (palette, typography)
+├── utils/          # Helper functions used in other modules
 └── widgets/        # Reusable UI components
 ```
