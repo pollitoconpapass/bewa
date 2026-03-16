@@ -17,7 +17,7 @@ class DBConnector {
   }
 
   /// ==== GET METHODS IN DB ====
-  
+
   // Get user info
   static Future<User?> getUser(Db db, String email) async {
     var user = await db.collection('users').findOne({'email': email});
@@ -43,33 +43,35 @@ class DBConnector {
 
   // Get playlist and its songs
   static Future<List<Song>> getPlaylistSongs(Db db, String playlistId) async {
-    var playlist = await db.collection('playlists').findOne(
-      where.id(ObjectId.fromHexString(playlistId)),
-    );
-    
+    var playlist = await db
+        .collection('playlists')
+        .findOne(where.id(ObjectId.fromHexString(playlistId)));
+
     if (playlist == null || playlist['songs'] == null) return [];
-    
+
     List<ObjectId> songObjectIds = List<ObjectId>.from(playlist['songs']);
-    
+
     if (songObjectIds.isEmpty) return [];
 
-    var songsCursor = db.collection('songs').find(where.oneFrom('_id', songObjectIds));
+    var songsCursor = db
+        .collection('songs')
+        .find(where.oneFrom('_id', songObjectIds));
     var songsList = await songsCursor.toList();
-    
+
     return songsList.map((song) => Song.fromJson(song)).toList();
   }
 
   // Get a single playlist's metadata
   static Future<Playlist?> getPlaylist(Db db, String playlistId) async {
-    var playlist = await db.collection('playlists').findOne(
-      where.id(ObjectId.fromHexString(playlistId)),
-    );
+    var playlist = await db
+        .collection('playlists')
+        .findOne(where.id(ObjectId.fromHexString(playlistId)));
     if (playlist == null) return null;
     return Playlist.fromJson(playlist);
   }
 
   /// ==== INSERT METHODS IN DB ====
-  
+
   // Insert new user
   static Future<void> insertUser(Db db, User user) async {
     await db.collection('users').insertOne(user.toJson()..remove('id'));
@@ -106,8 +108,10 @@ class DBConnector {
     var data = playlist.toJson()..remove('id');
     // Ensure IDs are ObjectIds
     data['userId'] = ObjectId.fromHexString(playlist.userId);
-    data['songs'] = playlist.songIds.map((id) => ObjectId.fromHexString(id)).toList();
-    
+    data['songs'] = playlist.songIds
+        .map((id) => ObjectId.fromHexString(id))
+        .toList();
+
     await db.collection('playlists').insertOne(data);
   }
 
@@ -117,32 +121,60 @@ class DBConnector {
     String playlistId,
     String songId,
   ) async {
-    await db.collection('playlists').updateOne(
-      where.id(ObjectId.fromHexString(playlistId)),
-      modify.push('songs', ObjectId.fromHexString(songId)),
-    );
+    await db
+        .collection('playlists')
+        .updateOne(
+          where.id(ObjectId.fromHexString(playlistId)),
+          modify.push('songs', ObjectId.fromHexString(songId)),
+        );
+  }
+
+  /// ==== UPDATE METHODS IN DB ====
+  // Update user info
+  static Future<void> updateUser(Db db, User user) async {
+    await db
+        .collection('users')
+        .updateOne(where.id(ObjectId.fromHexString(user.id)), user.toJson());
+  }
+
+  // Update a playlist (name)
+  static Future<void> updatePlaylist(Db db, Playlist playlist) async {
+    await db
+        .collection('playlists')
+        .updateOne(
+          where.id(ObjectId.fromHexString(playlist.id)),
+          playlist.toJson(),
+        );
   }
 
   /// ==== DELETE METHODS IN DB ====
-  
+
   // Delete a user
   static Future<void> deleteUser(Db db, String userId) async {
-    await db.collection('users').deleteOne(where.id(ObjectId.fromHexString(userId)));
+    await db
+        .collection('users')
+        .deleteOne(where.id(ObjectId.fromHexString(userId)));
   }
 
   // Delete a playlist
   static Future<void> deletePlaylist(Db db, String playlistId) async {
-    await db.collection('playlists').deleteOne(where.id(ObjectId.fromHexString(playlistId)));
+    await db
+        .collection('playlists')
+        .deleteOne(where.id(ObjectId.fromHexString(playlistId)));
   }
 
   // Delete a song
   static Future<void> deleteSong(Db db, String songId) async {
-    await db.collection('songs').deleteOne(where.id(ObjectId.fromHexString(songId)));
+    await db
+        .collection('songs')
+        .deleteOne(where.id(ObjectId.fromHexString(songId)));
   }
 
   // Delete an artist
   static Future<void> deleteArtist(Db db, String artistId) async {
-    await db.collection('artists').deleteOne(where.id(ObjectId.fromHexString(artistId)));
+    await db
+        .collection('artists')
+        .deleteOne(where.id(ObjectId.fromHexString(artistId)));
   }
 
   // Delete a song from faves
@@ -155,6 +187,20 @@ class DBConnector {
       'userId': ObjectId.fromHexString(userId),
       'songId': ObjectId.fromHexString(songId),
     });
+  }
+
+  // Delete a song from a playlist
+  static Future<void> removeSongFromPlaylist(
+    Db db,
+    String playlistId,
+    String songId,
+  ) async {
+    await db
+        .collection('playlists')
+        .updateOne(
+          where.id(ObjectId.fromHexString(playlistId)),
+          modify.pull('songs', ObjectId.fromHexString(songId)),
+        );
   }
 
   // Delete an artist from faves
