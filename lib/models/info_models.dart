@@ -23,7 +23,7 @@ class Song {
 
   factory Song.fromJson(Map<String, dynamic> json) {
     return Song(
-      id: json['_id'] ?? json['id'],
+      id: json['_id']?.toString() ?? json['id'] ?? '',
       externalId: json['externalId'],
       title: json['title'],
       artist: json['artist'],
@@ -31,7 +31,9 @@ class Song {
       image: json['image'],
       duration: (json['duration'] as num).toDouble(),
       url: json['url'],
-      savedAt: DateTime.parse(json['savedAt']),
+      savedAt: json['savedAt'] is DateTime
+          ? json['savedAt']
+          : DateTime.parse(json['savedAt']),
     );
   }
 
@@ -50,7 +52,6 @@ class Song {
   }
 }
 
-// Artists collection: just a catalog entry, no user-specific data
 class Artist {
   final String id;
   final String externalId;
@@ -68,11 +69,13 @@ class Artist {
 
   factory Artist.fromJson(Map<String, dynamic> json) {
     return Artist(
-      id: json['_id'] ?? json['id'],
+      id: json['_id']?.toString() ?? json['id'] ?? '',
       externalId: json['externalId'],
       name: json['name'],
       image: json['image'],
-      savedAt: DateTime.parse(json['savedAt']),
+      savedAt: json['savedAt'] is DateTime
+          ? json['savedAt']
+          : DateTime.parse(json['savedAt']),
     );
   }
 
@@ -108,13 +111,18 @@ class Playlist {
 
   factory Playlist.fromJson(Map<String, dynamic> json) {
     return Playlist(
-      id: json['_id'] ?? json['id'],
-      userId: json['userId'],
+      id: json['_id']?.toString() ?? json['id'] ?? '',
+      userId: json['userId']?.toString() ?? '',
       title: json['title'],
       image: json['image'],
-      songIds: List<String>.from(json['songs'] ?? []),
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
+      songIds:
+          (json['songs'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      createdAt: json['createdAt'] is DateTime
+          ? json['createdAt']
+          : DateTime.parse(json['createdAt']),
+      updatedAt: json['updatedAt'] is DateTime
+          ? json['updatedAt']
+          : DateTime.parse(json['updatedAt']),
     );
   }
 
@@ -131,7 +139,6 @@ class Playlist {
   }
 }
 
-// User: only what lives in the users document
 class User {
   final String id;
   final String name;
@@ -153,13 +160,17 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['_id'] ?? json['id'],
+      id: json['_id']?.toString() ?? json['id'] ?? '',
       name: json['name'],
       image: json['image'],
       email: json['email'],
       password: json['password'],
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
+      createdAt: json['createdAt'] is DateTime
+          ? json['createdAt']
+          : DateTime.parse(json['createdAt']),
+      updatedAt: json['updatedAt'] is DateTime
+          ? json['updatedAt']
+          : DateTime.parse(json['updatedAt']),
     );
   }
 
@@ -176,7 +187,6 @@ class User {
   }
 }
 
-// Junction: user ↔ song (favorites, play count, downloads)
 class UserSong {
   final String id;
   final String userId;
@@ -198,13 +208,15 @@ class UserSong {
 
   factory UserSong.fromJson(Map<String, dynamic> json) {
     return UserSong(
-      id: json['_id'] ?? json['id'],
-      userId: json['userId'],
-      songId: json['songId'],
+      id: json['_id']?.toString() ?? json['id'] ?? '',
+      userId: json['userId']?.toString() ?? '',
+      songId: json['songId']?.toString() ?? '',
       isFavorite: json['isFavorite'] ?? false,
       playCount: json['playCount'] ?? 0,
       isDownloaded: json['isDownloaded'] ?? false,
-      savedAt: DateTime.parse(json['savedAt']),
+      savedAt: json['savedAt'] is DateTime
+          ? json['savedAt']
+          : DateTime.parse(json['savedAt']),
     );
   }
 
@@ -221,7 +233,6 @@ class UserSong {
   }
 }
 
-// Junction: user ↔ artist (favorite artists)
 class UserArtist {
   final String id;
   final String userId;
@@ -239,11 +250,13 @@ class UserArtist {
 
   factory UserArtist.fromJson(Map<String, dynamic> json) {
     return UserArtist(
-      id: json['_id'] ?? json['id'],
-      userId: json['userId'],
-      artistId: json['artistId'],
+      id: json['_id']?.toString() ?? json['id'] ?? '',
+      userId: json['userId']?.toString() ?? '',
+      artistId: json['artistId']?.toString() ?? '',
       isFavorite: json['isFavorite'] ?? false,
-      savedAt: DateTime.parse(json['savedAt']),
+      savedAt: json['savedAt'] is DateTime
+          ? json['savedAt']
+          : DateTime.parse(json['savedAt']),
     );
   }
 
