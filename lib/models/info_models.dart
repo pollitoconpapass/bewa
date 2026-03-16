@@ -1,0 +1,259 @@
+class Song {
+  final String id;
+  final String externalId;
+  final String title;
+  final String artist;
+  final String artistId;
+  final String image;
+  final double duration;
+  final String url;
+  final DateTime savedAt;
+
+  Song({
+    required this.id,
+    required this.externalId,
+    required this.title,
+    required this.artist,
+    required this.artistId,
+    required this.image,
+    required this.duration,
+    required this.url,
+    required this.savedAt,
+  });
+
+  factory Song.fromJson(Map<String, dynamic> json) {
+    return Song(
+      id: json['_id'] ?? json['id'],
+      externalId: json['externalId'],
+      title: json['title'],
+      artist: json['artist'],
+      artistId: json['artistId'],
+      image: json['image'],
+      duration: (json['duration'] as num).toDouble(),
+      url: json['url'],
+      savedAt: DateTime.parse(json['savedAt']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'externalId': externalId,
+      'title': title,
+      'artist': artist,
+      'artistId': artistId,
+      'image': image,
+      'duration': duration,
+      'url': url,
+      'savedAt': savedAt.toIso8601String(),
+    };
+  }
+}
+
+// Artists collection: just a catalog entry, no user-specific data
+class Artist {
+  final String id;
+  final String externalId;
+  final String name;
+  final String image;
+  final DateTime savedAt;
+
+  Artist({
+    required this.id,
+    required this.externalId,
+    required this.name,
+    required this.image,
+    required this.savedAt,
+  });
+
+  factory Artist.fromJson(Map<String, dynamic> json) {
+    return Artist(
+      id: json['_id'] ?? json['id'],
+      externalId: json['externalId'],
+      name: json['name'],
+      image: json['image'],
+      savedAt: DateTime.parse(json['savedAt']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'externalId': externalId,
+      'name': name,
+      'image': image,
+      'savedAt': savedAt.toIso8601String(),
+    };
+  }
+}
+
+class Playlist {
+  final String id;
+  final String userId;
+  final String title;
+  final String image;
+  final List<String> songIds; // store IDs, not full Song objects
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  Playlist({
+    required this.id,
+    required this.userId,
+    required this.title,
+    required this.image,
+    required this.songIds,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory Playlist.fromJson(Map<String, dynamic> json) {
+    return Playlist(
+      id: json['_id'] ?? json['id'],
+      userId: json['userId'],
+      title: json['title'],
+      image: json['image'],
+      songIds: List<String>.from(json['songs'] ?? []),
+      createdAt: DateTime.parse(json['createdAt']),
+      updatedAt: DateTime.parse(json['updatedAt']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'userId': userId,
+      'title': title,
+      'image': image,
+      'songs': songIds,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+}
+
+// User: only what lives in the users document
+class User {
+  final String id;
+  final String name;
+  final String image;
+  final String email;
+  final String password;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  User({
+    required this.id,
+    required this.name,
+    required this.image,
+    required this.email,
+    required this.password,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['_id'] ?? json['id'],
+      name: json['name'],
+      image: json['image'],
+      email: json['email'],
+      password: json['password'],
+      createdAt: DateTime.parse(json['createdAt']),
+      updatedAt: DateTime.parse(json['updatedAt']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'image': image,
+      'email': email,
+      'password': password,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+}
+
+// Junction: user ↔ song (favorites, play count, downloads)
+class UserSong {
+  final String id;
+  final String userId;
+  final String songId;
+  final bool isFavorite;
+  final int playCount;
+  final bool isDownloaded;
+  final DateTime savedAt;
+
+  UserSong({
+    required this.id,
+    required this.userId,
+    required this.songId,
+    required this.isFavorite,
+    required this.playCount,
+    required this.isDownloaded,
+    required this.savedAt,
+  });
+
+  factory UserSong.fromJson(Map<String, dynamic> json) {
+    return UserSong(
+      id: json['_id'] ?? json['id'],
+      userId: json['userId'],
+      songId: json['songId'],
+      isFavorite: json['isFavorite'] ?? false,
+      playCount: json['playCount'] ?? 0,
+      isDownloaded: json['isDownloaded'] ?? false,
+      savedAt: DateTime.parse(json['savedAt']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'userId': userId,
+      'songId': songId,
+      'isFavorite': isFavorite,
+      'playCount': playCount,
+      'isDownloaded': isDownloaded,
+      'savedAt': savedAt.toIso8601String(),
+    };
+  }
+}
+
+// Junction: user ↔ artist (favorite artists)
+class UserArtist {
+  final String id;
+  final String userId;
+  final String artistId;
+  final bool isFavorite;
+  final DateTime savedAt;
+
+  UserArtist({
+    required this.id,
+    required this.userId,
+    required this.artistId,
+    required this.isFavorite,
+    required this.savedAt,
+  });
+
+  factory UserArtist.fromJson(Map<String, dynamic> json) {
+    return UserArtist(
+      id: json['_id'] ?? json['id'],
+      userId: json['userId'],
+      artistId: json['artistId'],
+      isFavorite: json['isFavorite'] ?? false,
+      savedAt: DateTime.parse(json['savedAt']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'userId': userId,
+      'artistId': artistId,
+      'isFavorite': isFavorite,
+      'savedAt': savedAt.toIso8601String(),
+    };
+  }
+}
