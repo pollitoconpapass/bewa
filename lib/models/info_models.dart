@@ -272,3 +272,27 @@ class UserArtist {
     };
   }
 }
+
+// === EXTERNAL SERVICES ===
+class SongResult {
+  final String title;
+  final String url;
+  final String thumbnail;
+  final double? duration;
+
+  SongResult({
+    required this.title,
+    required this.url,
+    required this.thumbnail,
+    this.duration,
+  });
+
+  factory SongResult.fromJson(Map<String, dynamic> json) {
+    return SongResult(
+      title: json['title'] ?? '',
+      url: json['webpage_url'] ?? '',
+      thumbnail: json['thumbnail'].last['url'] ?? '',
+      duration: json['duration'],
+    );
+  }
+}
