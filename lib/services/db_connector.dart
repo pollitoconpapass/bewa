@@ -70,6 +70,59 @@ class DBConnector {
     return Playlist.fromJson(playlist);
   }
 
+  // Get the top 30 songs played (they will appear in the most played playlist)
+  Future<List<Song>> getTop30Songs(Db db, String userId) async {
+    var userSongIds = await db
+        .collection('user_songs')
+        .find(
+          where
+              .eq('userId', ObjectId.fromHexString(userId))
+              .sortBy('playCount', descending: true)
+              .limit(30)
+              .fields(['songId']),
+        )
+        .map((doc) => doc['songId'] as ObjectId)
+        .toList();
+
+    if (userSongIds.isEmpty) return [];
+
+    var songsCursor = db
+        .collection('songs')
+        .find(where.oneFrom('_id', userSongIds));
+    var songsList = await songsCursor.toList();
+    return songsList.map((song) => Song.fromJson(song)).toList();
+  }
+
+  // Get the top 50 songs played of the year (something like Spotify Wrapped)
+  Future<List<Song>> getTop50Songs(
+    Db db,
+    String userId,
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    var userSongIds = await db
+        .collection('user_songs')
+        .find(
+          where
+              .eq('userId', ObjectId.fromHexString(userId))
+              .gte('savedAt', startDate)
+              .lt('savedAt', endDate)
+              .sortBy('playCount', descending: true)
+              .limit(50)
+              .fields(['songId']),
+        )
+        .map((doc) => doc['songId'] as ObjectId)
+        .toList();
+
+    if (userSongIds.isEmpty) return [];
+
+    var songsCursor = db
+        .collection('songs')
+        .find(where.oneFrom('_id', userSongIds));
+    var songsList = await songsCursor.toList();
+    return songsList.map((song) => Song.fromJson(song)).toList();
+  }
+
   /// ==== INSERT METHODS IN DB ====
 
   // Insert new user
@@ -77,11 +130,25 @@ class DBConnector {
     await db.collection('users').insertOne(user.toJson()..remove('id'));
   }
 
-  // Fave a song (creates entry in user_songs junction)
-  static Future<void> favoriteSong(Db db, String userId, String songId) async {
+  // Fave a song
+  static Future<void> faveSong(Db db, String userId, Song song) async {
+    var existingSong = await db.collection('songs').findOne({
+      'externalId': song.externalId,
+    });
+
+    ObjectId songId;
+    if (existingSong != null) {
+      songId = existingSong['_id'] as ObjectId;
+    } else {
+      var songData = song.toJson()..remove('id');
+      songData['savedAt'] = DateTime.now();
+      var result = await db.collection('songs').insertOne(songData);
+      songId = result.document!['_id'] as ObjectId;
+    }
+
     await db.collection('user_songs').insertOne({
       'userId': ObjectId.fromHexString(userId),
-      'songId': ObjectId.fromHexString(songId),
+      'songId': songId,
       'isFavorite': true,
       'playCount': 0,
       'isDownloaded': false,
@@ -89,15 +156,25 @@ class DBConnector {
     });
   }
 
-  // Fave an artist (creates entry in user_artists junction)
-  static Future<void> favoriteArtist(
-    Db db,
-    String userId,
-    String artistId,
-  ) async {
+  // Fave an artist
+  static Future<void> faveArtist(Db db, String userId, Artist artist) async {
+    var existingArtist = await db.collection('artists').findOne({
+      'externalId': artist.externalId,
+    });
+
+    ObjectId artistId;
+    if (existingArtist != null) {
+      artistId = existingArtist['_id'] as ObjectId;
+    } else {
+      var artistData = artist.toJson()..remove('id');
+      artistData['savedAt'] = DateTime.now();
+      var result = await db.collection('artists').insertOne(artistData);
+      artistId = result.document!['_id'] as ObjectId;
+    }
+
     await db.collection('user_artists').insertOne({
       'userId': ObjectId.fromHexString(userId),
-      'artistId': ObjectId.fromHexString(artistId),
+      'artistId': artistId,
       'isFavorite': true,
       'savedAt': DateTime.now(),
     });
@@ -144,6 +221,47 @@ class DBConnector {
         .updateOne(
           where.id(ObjectId.fromHexString(playlist.id)),
           playlist.toJson(),
+        );
+  }
+
+  // Play a song
+  Future<void> playSongIncrementPlayCount(
+    Db db,
+    String userId,
+    String songId,
+  ) async {
+    await db
+        .collection('user_songs')
+        .updateOne(
+          {
+            'userId': ObjectId.fromHexString(userId),
+            'songId': ObjectId.fromHexString(songId),
+          },
+          modify
+              .inc('playCount', 1)
+              .setOnInsert('isFavorite', false)
+              .setOnInsert('isDownloaded', false)
+              .setOnInsert('playCount', 0)
+              .setOnInsert('savedAt', DateTime.now()),
+          upsert: true,
+        );
+  }
+
+  // Download a song
+  Future<void> downloadSong(Db db, String userId, String songId) async {
+    await db
+        .collection('user_songs')
+        .updateOne(
+          {
+            'userId': ObjectId.fromHexString(userId),
+            'songId': ObjectId.fromHexString(songId),
+          },
+          modify
+              .setOnInsert('isDownloaded', true)
+              .setOnInsert('isFavorite', false)
+              .setOnInsert('playCount', 0)
+              .setOnInsert('savedAt', DateTime.now()),
+          upsert: true,
         );
   }
 
