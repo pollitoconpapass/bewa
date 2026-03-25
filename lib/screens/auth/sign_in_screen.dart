@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../screens/home_screen.dart';
 import '../../services/authorizer.dart';
 import '../../themes/palette.dart';
 import '../../widgets/custom_auth_field.dart';
@@ -34,9 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await Authorizer.saveUserEmail(_emailController.text.trim());
 
         if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-          );
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
         }
       } else {
         if (mounted) {
