@@ -1,5 +1,3 @@
-import '../utils/password_encryptation.dart';
-
 class Song {
   final String id;
   final String externalId;
@@ -49,7 +47,7 @@ class Song {
       'image': image,
       'duration': duration,
       'url': url,
-      'savedAt': savedAt.toIso8601String(),
+      'savedAt': savedAt,
     };
   }
 }
@@ -87,7 +85,7 @@ class Artist {
       'externalId': externalId,
       'name': name,
       'image': image,
-      'savedAt': savedAt.toIso8601String(),
+      'savedAt': savedAt,
     };
   }
 }
@@ -105,8 +103,8 @@ class Playlist {
     required this.id,
     required this.userId,
     required this.title,
-    required this.image,
     required this.songIds,
+    required this.image,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -116,7 +114,7 @@ class Playlist {
       id: json['_id']?.toString() ?? json['id'] ?? '',
       userId: json['userId']?.toString() ?? '',
       title: json['title'],
-      image: json['image'],
+      image: json['image'] ?? '',
       songIds:
           (json['songs'] as List?)?.map((e) => e.toString()).toList() ?? [],
       createdAt: json['createdAt'] is DateTime
@@ -135,8 +133,8 @@ class Playlist {
       'title': title,
       'image': image,
       'songs': songIds,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
     };
   }
 }
@@ -182,9 +180,9 @@ class User {
       'name': name,
       'image': image,
       'email': email,
-      'password': encryptPassword(password),
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'password': password,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
     };
   }
 }
@@ -230,7 +228,7 @@ class UserSong {
       'isFavorite': isFavorite,
       'playCount': playCount,
       'isDownloaded': isDownloaded,
-      'savedAt': savedAt.toIso8601String(),
+      'savedAt': savedAt,
     };
   }
 }
@@ -268,7 +266,7 @@ class UserArtist {
       'userId': userId,
       'artistId': artistId,
       'isFavorite': isFavorite,
-      'savedAt': savedAt.toIso8601String(),
+      'savedAt': savedAt,
     };
   }
 }
