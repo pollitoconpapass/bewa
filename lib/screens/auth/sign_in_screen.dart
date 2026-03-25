@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/authorizer.dart';
 import '../../themes/palette.dart';
+import '../../widgets/artists_3d_block.dart';
 import '../../widgets/custom_auth_field.dart';
 import 'sign_up_screen.dart';
 
@@ -17,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  int _currentPage = 0;
 
   Future<void> _onLogin() async {
     if (!_formKey.currentState!.validate()) return;
@@ -74,7 +76,8 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Spacer(flex: 2),
+                const Spacer(),
+                const SizedBox(height: 16),
                 Text(
                   'Bewa',
                   style: TextStyle(
@@ -87,6 +90,37 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Welcome back',
+                  style: TextStyle(fontSize: 16, color: labelsColor),
+                  textAlign: TextAlign.center,
+                ),
+                const Spacer(),
+                Artists3DBlock(
+                  onPageChanged: (index) {
+                    setState(() => _currentPage = index);
+                  },
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(20, (index) {
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      height: 6,
+                      width: index == _currentPage ? 20 : 6,
+                      decoration: BoxDecoration(
+                        color: index == _currentPage
+                            ? iconsBlocksColor
+                            : labelsColor.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    );
+                  }),
+                ),
+                const Spacer(),
+                const SizedBox(height: 8),
+                Text(
+                  'Their songs and more...',
                   style: TextStyle(fontSize: 16, color: labelsColor),
                   textAlign: TextAlign.center,
                 ),
