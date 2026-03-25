@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import './screens/home_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import './themes/palette.dart';
+import './widgets/auth_wrapper.dart';
 
-void main() {
+void main() async {
+  await dotenv.load();
   runApp(const MyApp());
 }
 
@@ -13,10 +15,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Bewa',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: primaryColor),
       ),
-      home: HomeScreen(),
+      home: const AuthWrapper(),
     );
   }
 }

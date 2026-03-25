@@ -2,11 +2,13 @@ import 'package:mongo_dart/mongo_dart.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../models/info_models.dart';
+import '../utils/password_encryptation.dart';
 
 class DBConnector {
   // Connect to the database
   static Future<Db> connect() async {
-    var db = Db(dotenv.env['MONGO_URL']!);
+    final mongoUrl = dotenv.env['MONGO_URL']!;
+    var db = Db(mongoUrl);
     await db.open();
     return db;
   }
@@ -23,6 +25,16 @@ class DBConnector {
     var user = await db.collection('users').findOne({'email': email});
     if (user == null) return null;
     return User.fromJson(user);
+  }
+
+  static Future<List<Map<String, dynamic>>> getAllUsers(Db db) async {
+    var users = await db.collection('users').find().toList();
+    return users;
+  }
+
+  static Future<List> getAllCollections(Db db) async {
+    var collections = await db.getCollectionNames();
+    return collections;
   }
 
   // Get Song info by externalId (bridge with web crawler)
@@ -71,7 +83,7 @@ class DBConnector {
   }
 
   // Get the top 30 songs played (they will appear in the most played playlist)
-  Future<List<Song>> getTop30Songs(Db db, String userId) async {
+  static Future<List<Song>> getTop30Songs(Db db, String userId) async {
     var userSongIds = await db
         .collection('user_songs')
         .find(
@@ -94,7 +106,7 @@ class DBConnector {
   }
 
   // Get the top 50 songs played of the year (something like Spotify Wrapped)
-  Future<List<Song>> getTop50Songs(
+  static Future<List<Song>> getTop50Songs(
     Db db,
     String userId,
     DateTime startDate,
@@ -127,7 +139,33 @@ class DBConnector {
 
   // Insert new user
   static Future<void> insertUser(Db db, User user) async {
-    await db.collection('users').insertOne(user.toJson()..remove('id'));
+    final userData = user.toJson();
+    userData.remove('id');
+    // Ensure password is encrypted before saving
+    userData['password'] = encryptPassword(user.password);
+
+    try {
+      var result = await db
+          .collection('users')
+          .insertOne(userData, writeConcern: WriteConcern.acknowledged);
+
+      if (result.isFailure) {
+        throw Exception('Insert failed: ${result.errmsg}');
+      }
+
+      // Verify immediately
+      var verify = await db.collection('users').findOne({
+        'email': userData['email'],
+      });
+
+      if (verify == null) {
+        throw Exception(
+          'Verification failed: User not found immediately after insert',
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
   }
 
   // Fave a song
@@ -142,8 +180,10 @@ class DBConnector {
     } else {
       var songData = song.toJson()..remove('id');
       songData['savedAt'] = DateTime.now();
-      var result = await db.collection('songs').insertOne(songData);
-      songId = result.document!['_id'] as ObjectId;
+      var result = await db
+          .collection('songs')
+          .insertOne(songData, writeConcern: WriteConcern.acknowledged);
+      songId = result.id as ObjectId;
     }
 
     await db.collection('user_songs').insertOne({
@@ -153,7 +193,7 @@ class DBConnector {
       'playCount': 0,
       'isDownloaded': false,
       'savedAt': DateTime.now(),
-    });
+    }, writeConcern: WriteConcern.acknowledged);
   }
 
   // Fave an artist
@@ -168,8 +208,10 @@ class DBConnector {
     } else {
       var artistData = artist.toJson()..remove('id');
       artistData['savedAt'] = DateTime.now();
-      var result = await db.collection('artists').insertOne(artistData);
-      artistId = result.document!['_id'] as ObjectId;
+      var result = await db
+          .collection('artists')
+          .insertOne(artistData, writeConcern: WriteConcern.acknowledged);
+      artistId = result.id as ObjectId;
     }
 
     await db.collection('user_artists').insertOne({
@@ -177,7 +219,7 @@ class DBConnector {
       'artistId': artistId,
       'isFavorite': true,
       'savedAt': DateTime.now(),
-    });
+    }, writeConcern: WriteConcern.acknowledged);
   }
 
   // Create a playlist
@@ -189,7 +231,9 @@ class DBConnector {
         .map((id) => ObjectId.fromHexString(id))
         .toList();
 
-    await db.collection('playlists').insertOne(data);
+    await db
+        .collection('playlists')
+        .insertOne(data, writeConcern: WriteConcern.acknowledged);
   }
 
   // Add a song to a playlist
@@ -203,6 +247,7 @@ class DBConnector {
         .updateOne(
           where.id(ObjectId.fromHexString(playlistId)),
           modify.push('songs', ObjectId.fromHexString(songId)),
+          writeConcern: WriteConcern.acknowledged,
         );
   }
 
@@ -211,7 +256,11 @@ class DBConnector {
   static Future<void> updateUser(Db db, User user) async {
     await db
         .collection('users')
-        .updateOne(where.id(ObjectId.fromHexString(user.id)), user.toJson());
+        .updateOne(
+          where.id(ObjectId.fromHexString(user.id)),
+          user.toJson(),
+          writeConcern: WriteConcern.acknowledged,
+        );
   }
 
   // Update a playlist (name)
@@ -221,11 +270,12 @@ class DBConnector {
         .updateOne(
           where.id(ObjectId.fromHexString(playlist.id)),
           playlist.toJson(),
+          writeConcern: WriteConcern.acknowledged,
         );
   }
 
   // Play a song
-  Future<void> playSongIncrementPlayCount(
+  static Future<void> playSongIncrementPlayCount(
     Db db,
     String userId,
     String songId,
@@ -244,11 +294,12 @@ class DBConnector {
               .setOnInsert('playCount', 0)
               .setOnInsert('savedAt', DateTime.now()),
           upsert: true,
+          writeConcern: WriteConcern.acknowledged,
         );
   }
 
   // Download a song
-  Future<void> downloadSong(Db db, String userId, String songId) async {
+  static Future<void> downloadSong(Db db, String userId, String songId) async {
     await db
         .collection('user_songs')
         .updateOne(
@@ -262,6 +313,7 @@ class DBConnector {
               .setOnInsert('playCount', 0)
               .setOnInsert('savedAt', DateTime.now()),
           upsert: true,
+          writeConcern: WriteConcern.acknowledged,
         );
   }
 
