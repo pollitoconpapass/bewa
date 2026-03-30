@@ -1,78 +1,114 @@
 import 'dart:io';
-import 'dart:convert';
-import 'package:just_audio/just_audio.dart';
-
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import '../models/info_models.dart';
 
 class SongService {
-  final String executable;
-
-  SongService({this.executable = 'yt-dlp'});
+  final YoutubeExplode _yt = YoutubeExplode();
 
   /// Search songs
-  Future<List<SongResult>> searchSong(String query, {int limit = 10}) async {
-    final result = await Process.run(executable, [
-      'ytsearch$limit:$query',
-      '--dump-json',
-    ]);
+  Future<List<SongResult>> searchSong(String query, {int limit = 20}) async {
+    try {
+      var searchList = await _yt.search.search(query);
 
-    if (result.exitCode != 0) {
-      throw Exception('Search failed: ${result.stderr}');
+      return searchList.take(limit).map((video) {
+        return SongResult(
+          id: video.id.value,
+          title: video.title,
+          url: video.url,
+          artist: video.author,
+          artistId: video.channelId.value,
+          thumbnail: video.thumbnails.highResUrl,
+          duration: video.duration?.inSeconds.toDouble(),
+        );
+      }).toList();
+    } catch (e) {
+      throw Exception('Search failed: $e');
     }
-
-    final lines = LineSplitter.split(result.stdout);
-
-    return lines.map((line) {
-      final json = jsonDecode(line);
-      return SongResult.fromJson(json);
-    }).toList();
   }
 
-  /// Get direct audio stream URL
-  Future<String> getAudioUrl(String videoUrl) async {
-    final result = await Process.run(executable, [
-      '-f',
-      'bestaudio',
-      '--no-playlist', // -> prevents a queue of audio streams
-      '-g',
-      videoUrl,
-    ]);
+  /// Get direct audio stream info
+  Future<AudioOnlyStreamInfo> getAudioStream(String videoUrl) async {
+    try {
+      var videoId = VideoId(videoUrl);
+      var manifest = await _yt.videos.streamsClient.getManifest(videoId);
 
-    if (result.exitCode != 0) {
-      throw Exception('Failed to get audio URL: ${result.stderr}');
+      // Filter for mp4 (m4a) container - best for iOS compatibility
+      var m4aStreams = manifest.audioOnly.where(
+        (s) => s.container == StreamContainer.mp4,
+      );
+
+      if (m4aStreams.isNotEmpty) {
+        // Get highest bitrate m4a
+        var audioStream = m4aStreams.withHighestBitrate();
+        print("Selected M4A Stream: ${audioStream.bitrate}, URL: ${audioStream.url}");
+        return audioStream;
+      }
+
+      // Fallback to highest bitrate of any container (could be webm)
+      final fallback = manifest.audioOnly.withHighestBitrate();
+      print("Selected Fallback Stream (Container: ${fallback.container}): ${fallback.url}");
+      return fallback;
+    } catch (e) {
+      throw Exception('Failed to get audio stream: $e');
     }
-
-    return (result.stdout as String).trim();
   }
 
-  /// Play the audio stream
-  Future<void> playAudio(String audioUrl) async {
-    final player = AudioPlayer();
-    await player.setUrl(audioUrl);
-    await player.play();
-  }
-
-  /// Download audio as mp3
+  /// Download audio
   Future<void> downloadAudio(String videoUrl, {String? outputPath}) async {
-    final args = [
-      '-x',
-      '--audio-format',
-      'mp3',
-      '--no-playlist',
-      if (outputPath != null) '-o',
-      if (outputPath != null) outputPath,
-      videoUrl,
-    ];
+    try {
+      var videoId = VideoId(videoUrl);
+      var video = await _yt.videos.get(videoId);
+      var manifest = await _yt.videos.streamsClient.getManifest(videoId);
 
-    final process = await Process.start(executable, args);
+      // Filter for mp4 (m4a) container
+      var audioStreams = manifest.audioOnly.where(
+        (s) => s.container == StreamContainer.mp4,
+      );
+      AudioOnlyStreamInfo audioStreamInfo;
 
-    await stdout.addStream(process.stdout);
-    await stderr.addStream(process.stderr);
+      if (audioStreams.isEmpty) {
+        audioStreamInfo = manifest.audioOnly.withHighestBitrate();
+      } else {
+        audioStreamInfo = audioStreams.reduce(
+          (curr, next) =>
+              curr.bitrate.bitsPerSecond > next.bitrate.bitsPerSecond
+              ? curr
+              : next,
+        );
+      }
 
-    final exitCode = await process.exitCode;
+      String fullPath;
+      if (outputPath != null) {
+        fullPath = outputPath;
+      } else {
+        final directory = await getApplicationDocumentsDirectory();
+        // Sanitize filename
+        final fileName = video.title.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+        fullPath = p.join(
+          directory.path,
+          '$fileName.${audioStreamInfo.container.name}',
+        );
+      }
 
-    if (exitCode != 0) {
-      throw Exception('Download failed');
+      var file = File(fullPath);
+      if (file.existsSync()) {
+        await file.delete();
+      }
+
+      var output = file.openWrite();
+      var stream = _yt.videos.streamsClient.get(audioStreamInfo);
+
+      await stream.pipe(output);
+      await output.flush();
+      await output.close();
+    } catch (e) {
+      throw Exception('Download failed: $e');
     }
+  }
+
+  void dispose() {
+    _yt.close();
   }
 }

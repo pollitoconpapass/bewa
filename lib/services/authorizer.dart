@@ -51,4 +51,15 @@ class Authorizer {
     await DBConnector.close(db);
     return user != null && decryptPassword(user.password) == password;
   }
+
+  // Get current logged in user
+  static Future<User?> getCurrentUser() async {
+    final email = await getUserEmail();
+    if (email == null) return null;
+
+    var db = await DBConnector.connect();
+    User? user = await DBConnector.getUser(db, email);
+    await DBConnector.close(db);
+    return user;
+  }
 }
