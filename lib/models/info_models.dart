@@ -273,24 +273,46 @@ class UserArtist {
 
 // === EXTERNAL SERVICES ===
 class SongResult {
+  final String id;
   final String title;
   final String url;
+  final String artist;
+  final String artistId;
   final String thumbnail;
   final double? duration;
 
   SongResult({
+    required this.id,
     required this.title,
     required this.url,
+    required this.artist,
+    required this.artistId,
     required this.thumbnail,
     this.duration,
   });
 
   factory SongResult.fromJson(Map<String, dynamic> json) {
+    // yt-dlp returns 'thumbnails' as a list or 'thumbnail' as a string
+    String thumb = '';
+    if (json['thumbnails'] != null && (json['thumbnails'] as List).isNotEmpty) {
+      thumb = json['thumbnails'].last['url'] ?? '';
+    } else {
+      thumb = json['thumbnail'] ?? '';
+    }
+
     return SongResult(
+      id: json['id'] ?? '',
       title: json['title'] ?? '',
       url: json['webpage_url'] ?? '',
-      thumbnail: json['thumbnail'].last['url'] ?? '',
-      duration: json['duration'],
+      artist: json['uploader'] ?? json['channel'] ?? '',
+      artistId: json['uploader_id'] ?? json['channel_id'] ?? '',
+      thumbnail: thumb,
+      duration: (json['duration'] as num?)?.toDouble(),
     );
+  }
+
+  @override
+  String toString() {
+    return 'SongResult(title: $title, artist: $artist, url: $url, duration: $duration, thumbnail: $thumbnail)\n\n';
   }
 }
